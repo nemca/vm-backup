@@ -49,11 +49,13 @@ function backup_image() {
 	fi
 }
 
-err_msg=`virsh blockcommit $VM $DISK --active --verbose --pivot 2>&1 1>/dev/null`
-if [[ $? != 0 ]]; then
-	error "Can't do blockcommit $VM: $err_msg"
-	delete_temp_snapshot && exit 3
-fi
+function blockcommit_image() {
+	err_msg=`virsh blockcommit $1 $DISK --active --verbose --pivot 2>&1 1>/dev/null`
+	if [[ $? != 0 ]]; then
+		error "Can't do blockcommit $1: $err_msg"
+		delete_temp_snapshot && exit 3
+	fi
+}
 
 err_msg=`virsh snapshot-delete --domain $VM --snapshotname $DATE --metadata 2>&1 1>/dev/null`
 if [[ $? != 0 ]]; then
