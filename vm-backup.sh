@@ -11,23 +11,22 @@ if [[ -r logging.sh ]]; then
 fi
 
 function get_vms() {
-	VM=`virsh list --state-running --name`
+	VMS=`virsh list --state-running --name`
 	if [[ $? != 0 ]]; then
 		log "VM's not found" && exit 0
 	fi
 }
 
-# get disk
 function get_disk() {
 	DISK=`virsh domblklist $1 | awk '/qcow2/ { print $1 }'`
 }
 
 function delete_temp_snapshot() {
-	rm -f $BACKUP_DIR/$VM-snapshot.qcow2 1>/dev/null 2>&1
+	rm -f $BACKUP_DIR/$1-snapshot.qcow2 1>/dev/null 2>&1
 }
 
 # create snapshot
-function create_snapshot() {
+function create_temp_snapshot() {
 	err_msg=`virsh snapshot-create-as --domain $1 $DATE --diskspec $DISK,file=$BACKUP_DIR/$1-snapshot.qcow2 --disk-only --atomic 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
 		error "Cant't create $1 snapshot: $err_msg"
@@ -65,8 +64,6 @@ function delete_snapshot() {
 	fi
 }
 
-delete_temp_snapshot
-
 function backup_config() {
 	err_msg=`virsh dumpxml $1 > $BACKUP_DIR/$1/$DATE/$1.xml 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
@@ -74,3 +71,17 @@ function backup_config() {
 		exit 5
 	fi
 }
+
+# Go go go
+get_vms
+for $VM in $VMS; do
+	get_disk $VM
+	create_temp_snapshot $VM
+	create_snapshot_dir
+	backup_image $VM
+	blockcommit_image $VM
+	delete_snapshot $VM
+	backup_config $VM
+	delete_temp_snapshot $VM
+done
+
