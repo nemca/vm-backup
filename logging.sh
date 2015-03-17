@@ -6,7 +6,7 @@ _timeNow() {
 	date +"%Y-%m-%d %H:%M:%S"
 }
 
-_log() {
+log() {
 	if [[ -z $LOG_PATH ]]; then
 		echo `_timeNow` "[INFO] $1"
 	else
@@ -14,7 +14,7 @@ _log() {
 	fi
 }
 
-_error() {
+error() {
 	if [[ -z $LOG_PATH ]]; then
 		echo `_timeNow` "[ERROR] $1"
 	else
@@ -26,7 +26,7 @@ _error() {
 	exit 1
 }
 
-_warning() {
+warning() {
 	if [[ -z $LOG_PATH ]]; then
 		echo `_timeNow` "[WARNING] $1"
 	else
