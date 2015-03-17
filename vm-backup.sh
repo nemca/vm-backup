@@ -35,13 +35,11 @@ function create_snapshot() {
 	fi
 }
 
-	if [[ ! -d $BACKUP_DIR/$VM ]]; then
-		mkdir $BACKUP_DIR/$VM
-	fi
+function create_snapshot_dir() {
 	if [[ ! -d $BACKUP_DIR/$VM/$DATE ]]; then
-		mkdir $BACKUP_DIR/$VM/$DATE
+		mkdir -p $BACKUP_DIR/$VM/$DATE
 	fi
-
+}
 
 err_msg=`rsync -a $DATA_DIR/$VM.qcow2 $BACKUP_DIR/$VM/$DATE/$VM.qcow2 2>&1 1>/dev/null`
 if [[ $? != 0 ]]; then
