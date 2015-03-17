@@ -67,8 +67,10 @@ function delete_snapshot() {
 
 delete_temp_snapshot
 
-err_msg=`virsh dumpxml $VM > $BACKUP_DIR/$VM/$DATE/$VM.xml 2>&1 1>/dev/null`
-if [[ $? != 0 ]]; then
-	error "Can't create dump config $VM: $err_msg"
-	exit 5
-fi
+function backup_config() {
+	err_msg=`virsh dumpxml $1 > $BACKUP_DIR/$1/$DATE/$1.xml 2>&1 1>/dev/null`
+	if [[ $? != 0 ]]; then
+		error "Can't create dump config $1: $err_msg"
+		exit 5
+	fi
+}
