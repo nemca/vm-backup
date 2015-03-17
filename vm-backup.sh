@@ -18,7 +18,9 @@ function get_vms() {
 }
 
 # get disk
-DISK=`virsh domblklist $VM | awk '/qcow2/ { print $1 }'`
+function get_disk() {
+	DISK=`virsh domblklist $1 | awk '/qcow2/ { print $1 }'`
+}
 
 function delete_temp_snapshot() {
 	rm -f $BACKUP_DIR/$VM-snapshot.qcow2 1>/dev/null 2>&1
