@@ -57,11 +57,14 @@ function blockcommit_image() {
 	fi
 }
 
-err_msg=`virsh snapshot-delete --domain $VM --snapshotname $DATE --metadata 2>&1 1>/dev/null`
-if [[ $? != 0 ]]; then
-	error "Can't delete $VM temporary snapshot: $err_msg"
-	delete_temp_snapshot && exit 4
-fi
+function delete_snapshot() {
+	err_msg=`virsh snapshot-delete --domain $1 --snapshotname $DATE --metadata 2>&1 1>/dev/null`
+	if [[ $? != 0 ]]; then
+		error "Can't delete $1 temporary snapshot: $err_msg"
+		delete_temp_snapshot && exit 4
+	fi
+}
+
 delete_temp_snapshot
 
 err_msg=`virsh dumpxml $VM > $BACKUP_DIR/$VM/$DATE/$VM.xml 2>&1 1>/dev/null`
