@@ -36,16 +36,18 @@ function create_snapshot() {
 }
 
 function create_snapshot_dir() {
-	if [[ ! -d $BACKUP_DIR/$VM/$DATE ]]; then
-		mkdir -p $BACKUP_DIR/$VM/$DATE
+	if [[ ! -d $BACKUP_DIR/$1/$DATE ]]; then
+		mkdir -p $BACKUP_DIR/$1/$DATE
 	fi
 }
 
-err_msg=`rsync -a $DATA_DIR/$VM.qcow2 $BACKUP_DIR/$VM/$DATE/$VM.qcow2 2>&1 1>/dev/null`
-if [[ $? != 0 ]]; then
-	error "Can't backup $VM image: $err_msg"
-	delete_temp_snapshot && exit 2
-fi
+function backup_image() {
+	err_msg=`rsync -a $DATA_DIR/$1.qcow2 $BACKUP_DIR/$1/$DATE/$1.qcow2 2>&1 1>/dev/null`
+	if [[ $? != 0 ]]; then
+		error "Can't backup $1 image: $err_msg"
+		delete_temp_snapshot && exit 2
+	fi
+}
 
 err_msg=`virsh blockcommit $VM $DISK --active --verbose --pivot 2>&1 1>/dev/null`
 if [[ $? != 0 ]]; then
