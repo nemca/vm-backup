@@ -26,19 +26,22 @@ function delete_temp_snapshot() {
 	rm -f $BACKUP_DIR/$VM-snapshot.qcow2 1>/dev/null 2>&1
 }
 
-# create snaapshot
-err_msg=`virsh snapshot-create-as --domain $VM $DATE --diskspec $DISK,file=$BACKUP_DIR/$VM-snapshot.qcow2 --disk-only --atomic 2>&1 1>/dev/null`
-if [[ $? != 0 ]]; then
-	error "Cant't create $VM snapshot: $err_msg"
-	delete_temp_snapshot && exit 1
-fi
+# create snapshot
+function create_snapshot() {
+	err_msg=`virsh snapshot-create-as --domain $1 $DATE --diskspec $DISK,file=$BACKUP_DIR/$1-snapshot.qcow2 --disk-only --atomic 2>&1 1>/dev/null`
+	if [[ $? != 0 ]]; then
+		error "Cant't create $1 snapshot: $err_msg"
+		delete_temp_snapshot && exit 1
+	fi
+}
 
-if [[ ! -d $BACKUP_DIR/$VM ]]; then
-	mkdir $BACKUP_DIR/$VM
-fi
-if [[ ! -d $BACKUP_DIR/$VM/$DATE ]]; then
-	mkdir $BACKUP_DIR/$VM/$DATE
-fi
+	if [[ ! -d $BACKUP_DIR/$VM ]]; then
+		mkdir $BACKUP_DIR/$VM
+	fi
+	if [[ ! -d $BACKUP_DIR/$VM/$DATE ]]; then
+		mkdir $BACKUP_DIR/$VM/$DATE
+	fi
+
 
 err_msg=`rsync -a $DATA_DIR/$VM.qcow2 $BACKUP_DIR/$VM/$DATE/$VM.qcow2 2>&1 1>/dev/null`
 if [[ $? != 0 ]]; then
