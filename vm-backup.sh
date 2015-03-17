@@ -4,6 +4,7 @@ DATE=`date +%F`
 DATA_DIR="/var/glusterfs/vm_images_and_config/images"
 BACKUP_DIR="/snapshots"
 LOG_PATH="/var/log/vm-backup.log"
+NO_BACKUP="owncloud"
 
 # logging
 if [[ -r logging.sh ]]; then
@@ -18,78 +19,87 @@ function get_vms() {
 	fi
 }
 
+function not_backup() {
+	echo $NO_BACKUP | egrep $VM 2>&1 1>/dev/null
+	if [[ $? == 0 ]]; then
+		log "$VM not backup"
+		continue
+	fi 
+}
+
 function get_disk() {
-	log "get $1 disk"
-	DISK=`virsh domblklist $1 | awk '/qcow2/ { print $1 }'`
+	log "get $VM disk"
+	DISK=`virsh domblklist $VM | awk '/qcow2/ { print $1 }'`
 }
 
 function delete_temp_snapshot() {
-	log "delete $1 temporary snapshot"
-	rm -f $BACKUP_DIR/$1-snapshot.qcow2 1>/dev/null 2>&1
+	log "delete $VM temporary snapshot"
+	rm -f $BACKUP_DIR/$VM-snapshot.qcow2 1>/dev/null 2>&1
 }
 
 # create snapshot
 function create_temp_snapshot() {
-	log "create $1 temporary snapshot"
-	err_msg=`virsh snapshot-create-as --domain $1 $DATE --diskspec $DISK,file=$BACKUP_DIR/$1-snapshot.qcow2 --disk-only --atomic 2>&1 1>/dev/null`
+	log "create $VM temporary snapshot"
+	err_msg=`virsh snapshot-create-as --domain $VM $DATE --diskspec $DISK,file=$BACKUP_DIR/$VM-snapshot.qcow2 --disk-only --atomic 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
-		error "Cant't create $1 temporary snapshot: $err_msg"
-		delete_temp_snapshot $1 && exit 1
+		error "Cant't create $VM temporary snapshot: $err_msg"
+		delete_temp_snapshot && exit 1
 	fi
 }
 
 function create_snapshot_dir() {
-	if [[ ! -d $BACKUP_DIR/$1/$DATE ]]; then
-		log "create $1 backup dir"
-		mkdir -p $BACKUP_DIR/$1/$DATE
+	if [[ ! -d $BACKUP_DIR/$VM/$DATE ]]; then
+		log "create $VM backup dir"
+		mkdir -p $BACKUP_DIR/$VM/$DATE
 	fi
 }
 
 function backup_image() {
-	log "backup $1 image"
-	err_msg=`rsync -a $DATA_DIR/$1.qcow2 $BACKUP_DIR/$1/$DATE/$1.qcow2 2>&1 1>/dev/null`
+	log "backup $VM image"
+	err_msg=`rsync -a $DATA_DIR/$VM.qcow2 $BACKUP_DIR/$VM/$DATE/$VM.qcow2 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
-		error "Can't backup $1 image: $err_msg"
-		delete_temp_snapshot $1 && exit 2
+		error "Can't backup $VM image: $err_msg"
+		delete_temp_snapshot && exit 2
 	fi
 }
 
 function blockcommit_image() {
-	log "blockcommit $1 image"
-	err_msg=`virsh blockcommit $1 $DISK --active --verbose --pivot 2>&1 1>/dev/null`
+	log "blockcommit $VM image"
+	err_msg=`virsh blockcommit $VM $DISK --active --verbose --pivot 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
-		error "Can't do blockcommit $1: $err_msg"
-		delete_temp_snapshot $1 && exit 3
+		error "Can't do blockcommit $VM: $err_msg"
+		delete_temp_snapshot && exit 3
 	fi
 }
 
 function delete_snapshot() {
-	log "delete $1 temporary snapshot"
-	err_msg=`virsh snapshot-delete --domain $1 --snapshotname $DATE --metadata 2>&1 1>/dev/null`
+	log "delete $VM temporary snapshot"
+	err_msg=`virsh snapshot-delete --domain $VM --snapshotname $DATE --metadata 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
-		error "Can't delete $1 temporary snapshot: $err_msg"
-		delete_temp_snapshot $1 && exit 4
+		error "Can't delete $VM temporary snapshot: $err_msg"
+		delete_temp_snapshot && exit 4
 	fi
 }
 
 function backup_config() {
-	log "backup $1 config"
-	err_msg=`virsh dumpxml $1 > $BACKUP_DIR/$1/$DATE/$1.xml 2>&1 1>/dev/null`
+	log "backup $VM config"
+	err_msg=`virsh dumpxml $VM > $BACKUP_DIR/$VM/$DATE/$VM.xml 2>&1 1>/dev/null`
 	if [[ $? != 0 ]]; then
-		error "Can't create dump config $1: $err_msg"
+		error "Can't create dump config $VM: $err_msg"
 		exit 5
 	fi
 }
 
 # Go go go
 get_vms
-for $VM in $VMS; do
-	get_disk $VM
-	create_temp_snapshot $VM
+for VM in $VMS; do
+	not_backup
+	get_disk 
+	create_temp_snapshot
 	create_snapshot_dir
-	backup_image $VM
-	blockcommit_image $VM
-	delete_snapshot $VM
-	backup_config $VM
-	delete_temp_snapshot $VM
+	backup_image 
+	blockcommit_image 
+	delete_snapshot 
+	backup_config 
+	delete_temp_snapshot 
 done
