@@ -1,13 +1,15 @@
 #! /usr/bin/env bash
 
-VM=$1
 DATE=`date +%F`
 DATA_DIR="/var/glusterfs/vm_images_and_config/images"
 BACKUP_DIR="/snapshots"
 
-if [[ -z $1 ]]; then
-	exit 0
-fi
+function get_vms() {
+	VM=`virsh list --state-running --name`
+	if [[ $? != 0 ]]; then
+		echo "VM's not found" && exit 0
+	fi
+}
 
 # get disk
 DISK=`virsh domblklist $VM | awk '/qcow2/ { print $1 }'`
